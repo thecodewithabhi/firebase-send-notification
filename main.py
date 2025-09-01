@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # Configurations
 # -------------------------------------------------
 SERVICE_ACCOUNT_FILE = "service-account.json"
-PROJECT_ID = "fir-send-notification-6eA29"
+PROJECT_ID = "fir-send-notification-e6a29"
 DEVICE_TOKEN = "fPaMkdRcEwuPuVTaT8XsaK:APA91bHO6IphE_txNRIiPNPIPFvkz8c9fVS63phOQibHFHrDPLPATu2Jjx7nvg7QHmBbi0UHVDBUoaEkW76BRzlKWqm0ZjlBxePpdYkiPIpK15El6AUy6Uo"
 
 DIRECTUS_URL = "https://firebase-notification.directus.app"
