@@ -3,6 +3,7 @@ import requests
 import logging
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request as GoogleRequest
+from google.cloud import firestore
 
 # -------------------------------------------------
 # Logging
@@ -16,12 +17,8 @@ logger = logging.getLogger(__name__)
 SERVICE_ACCOUNT_FILE = "service-account.json"
 PROJECT_ID = "fir-send-notification-e6a29"
 
-# Directus config (not needed for fetching since webhook already gives payload)
-DIRECTUS_URL = "https://firebase-notification.directus.app"
-DIRECTUS_TOKEN = "4gFa5biODkz2vhkvnwCxgFl3fmelhXBO"
-
 # -------------------------------------------------
-# Firebase Authentication
+# Firebase Authentication for FCM
 # -------------------------------------------------
 credentials = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE, scopes=["https://www.googleapis.com/auth/cloud-platform"]
@@ -30,6 +27,11 @@ credentials = service_account.Credentials.from_service_account_file(
 def get_access_token():
     credentials.refresh(GoogleRequest())
     return credentials.token
+
+# -------------------------------------------------
+# Firestore Client
+# -------------------------------------------------
+firestore_client = firestore.Client.from_service_account_json(SERVICE_ACCOUNT_FILE)
 
 # -------------------------------------------------
 # FastAPI App
@@ -77,9 +79,16 @@ async def directus_webhook(request: Request):
     }
 
     firebase_response = requests.post(url, headers=headers, json=message_payload)
-  
+
     if firebase_response.status_code == 200:
         logger.info("✅ Notification sent successfully!")
+
+        # Save notification into Firestore
+        firestore_client.collection("notification").add({
+            "title": title,
+            "message": body
+        })
+
         return {"status": "success", "firebase_response": firebase_response.json()}
     else:
         logger.error(f"❌ Failed to send notification: {firebase_response.status_code}, {firebase_response.text}")
