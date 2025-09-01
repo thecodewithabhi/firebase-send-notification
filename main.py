@@ -81,7 +81,7 @@ async def directus_webhook(request: Request):
     }
 
     firebase_response = requests.post(url, headers=headers, json=message_payload)
-    firebase_response.json()
+    print(firebase_response.json())
     if firebase_response.status_code == 200:
         logger.info("✅ Notification sent successfully!")
         return {"status": "success", "firebase_response": firebase_response.json()}
