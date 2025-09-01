@@ -3,3 +3,4 @@ uvicorn
 gunicorn
 firebase-admin
 requests
+httpx
