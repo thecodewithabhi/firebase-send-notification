@@ -9,6 +9,10 @@ firebase_admin.initialize_app(cred)
 
 app = FastAPI()
 
+@app.get('/')
+def home():
+    return "testing"
+
 @app.post("/directus-webhook")
 async def directus_webhook(request: Request):
     data = await request.json()
