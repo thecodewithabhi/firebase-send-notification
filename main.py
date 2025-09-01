@@ -13,6 +13,10 @@ app = FastAPI()
 def home():
     return "Welcome in the Project - Based on send notification from firebase"
 
+@app.get('/home')
+def home():
+    return "Welcome in the Project"
+
 @app.post("/directus-webhook")
 async def directus_webhook(request: Request):
     data = await request.json()
