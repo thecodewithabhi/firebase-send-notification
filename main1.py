@@ -8,7 +8,7 @@ app = Flask(__name__)
 cred = credentials.Certificate("service-account.json")  # Your service account JSON
 firebase_admin.initialize_app(cred)
 
-@app.route('/notify', methods=['POST'])
+@app.route('/directus-webhook', methods=['POST'])
 def notify():
     data = request.json.get("payload", {})  # Directus sends the payload here
 
