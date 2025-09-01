@@ -5,3 +5,5 @@ firebase-admin
 requests
 httpx
 google-auth
+flask==2.3.3
+firebase-admin==6.4.0
