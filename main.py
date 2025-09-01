@@ -40,10 +40,6 @@ app = FastAPI()
 def home():
     return {"message": "Welcome to Send Notification from Firebase"}
 
-@app.get("/home")
-def test():
-    return {"message": "Vinay"}
-
 @app.post("/directus-webhook")
 async def directus_webhook(request: Request):
     """
@@ -81,7 +77,7 @@ async def directus_webhook(request: Request):
     }
 
     firebase_response = requests.post(url, headers=headers, json=message_payload)
-    print(firebase_response.json())
+  
     if firebase_response.status_code == 200:
         logger.info("✅ Notification sent successfully!")
         return {"status": "success", "firebase_response": firebase_response.json()}
