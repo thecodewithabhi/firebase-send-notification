@@ -34,6 +34,10 @@ credentials.refresh(GoogleRequest())
 # -------------------------------------------------
 app = FastAPI()
 
+@app.get("/")
+def home():
+    return "Welcome in Send Notifiaction from Firebase"
+
 @app.post("/directus-webhook")
 async def directus_webhook(request: Request):
     """
