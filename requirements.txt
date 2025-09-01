@@ -4,3 +4,4 @@ gunicorn
 firebase-admin
 requests
 httpx
+google-auth
