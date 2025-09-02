@@ -82,21 +82,27 @@ async def directus_webhook(request: Request):
 
         firebase_response = requests.post(url, headers=headers, json=message_payload)
 
+        # Prepare Firestore document
+        log_entry = {
+            "title": title,
+            "message": body,
+            "device_token": device_token,
+            "sent_at": datetime.utcnow(),
+        }
+
         if firebase_response.status_code == 200:
             logger.info("✅ Notification sent successfully!")
-
-            # Save into Firestore
-            firestore_client.collection("notification").add({
-                "title": title,
-                "message": body,
-                "device_token": device_token,
-                "timestamp": datetime.utcnow()
-            })
-
-            return {"status": "success", "firebase_response": firebase_response.json()}
+            log_entry["status"] = "sent"
+            log_entry["firebase_response"] = firebase_response.json()
         else:
             logger.error(f"❌ Failed to send notification: {firebase_response.status_code}, {firebase_response.text}")
-            return {"status": "error", "firebase_response": firebase_response.text}
+            log_entry["status"] = "failed"
+            log_entry["firebase_response"] = firebase_response.text
+
+        # Save into Firestore
+        firestore_client.collection("notification").add(log_entry)
+
+        return {"status": log_entry["status"], "firebase_response": log_entry["firebase_response"]}
 
     except Exception as e:
         logger.exception("🔥 Exception while processing webhook")
