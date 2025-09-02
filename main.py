@@ -4,6 +4,7 @@ import logging
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request as GoogleRequest
 from google.cloud import firestore
+from datetime import datetime
 
 # -------------------------------------------------
 # Logging
@@ -25,6 +26,7 @@ credentials = service_account.Credentials.from_service_account_file(
 )
 
 def get_access_token():
+    """Fetch fresh access token for Firebase Cloud Messaging"""
     credentials.refresh(GoogleRequest())
     return credentials.token
 
@@ -47,49 +49,55 @@ async def directus_webhook(request: Request):
     """
     Endpoint for Directus webhook when a new item is added.
     """
-    data = await request.json()
-    logger.info(f"Webhook received: {data}")
+    try:
+        data = await request.json()
+        logger.info(f"📩 Webhook received: {data}")
 
-    # Extract fields directly from webhook payload
-    device_token = data.get("device_token")
-    title = data.get("title", "No Title")
-    body = data.get("message", "No Message")
+        # Extract fields
+        device_token = data.get("device_token")
+        title = data.get("title", "No Title")
+        body = data.get("message") or data.get("body") or "No Message"
 
-    if not device_token:
-        logger.error("❌ No device token found in webhook payload")
-        return {"status": "error", "details": "No device token provided"}
+        if not device_token:
+            logger.error("❌ No device token found in webhook payload")
+            return {"status": "error", "details": "No device token provided"}
 
-    # Firebase message payload
-    message_payload = {
-        "message": {
-            "token": device_token,
-            "notification": {
-                "title": title,
-                "body": body
+        # Firebase message payload
+        message_payload = {
+            "message": {
+                "token": device_token,
+                "notification": {
+                    "title": title,
+                    "body": body
+                }
             }
         }
-    }
 
-    # Firebase FCM endpoint
-    url = f"https://fcm.googleapis.com/v1/projects/{PROJECT_ID}/messages:send"
+        # Firebase FCM endpoint
+        url = f"https://fcm.googleapis.com/v1/projects/{PROJECT_ID}/messages:send"
+        headers = {
+            "Authorization": f"Bearer {get_access_token()}",
+            "Content-Type": "application/json"
+        }
 
-    headers = {
-        "Authorization": f"Bearer {get_access_token()}",
-        "Content-Type": "application/json"
-    }
+        firebase_response = requests.post(url, headers=headers, json=message_payload)
 
-    firebase_response = requests.post(url, headers=headers, json=message_payload)
+        if firebase_response.status_code == 200:
+            logger.info("✅ Notification sent successfully!")
 
-    if firebase_response.status_code == 200:
-        logger.info("✅ Notification sent successfully!")
+            # Save into Firestore
+            firestore_client.collection("notification").add({
+                "title": title,
+                "message": body,
+                "device_token": device_token,
+                "timestamp": datetime.utcnow()
+            })
 
-        # Save notification into Firestore
-        firestore_client.collection("notification").add({
-            "title": title,
-            "message": body
-        })
+            return {"status": "success", "firebase_response": firebase_response.json()}
+        else:
+            logger.error(f"❌ Failed to send notification: {firebase_response.status_code}, {firebase_response.text}")
+            return {"status": "error", "firebase_response": firebase_response.text}
 
-        return {"status": "success", "firebase_response": firebase_response.json()}
-    else:
-        logger.error(f"❌ Failed to send notification: {firebase_response.status_code}, {firebase_response.text}")
-        return {"status": "error", "firebase_response": firebase_response.text}
+    except Exception as e:
+        logger.exception("🔥 Exception while processing webhook")
+        return {"status": "error", "details": str(e)}
